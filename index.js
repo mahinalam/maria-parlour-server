@@ -122,8 +122,23 @@ async function run() {
 
         })
 
-        //update service status
-        app.put('/services/:id', verifyJWT, async (req, res) => {
+        //update service
+        app.put('/services/:id', verifyJWT, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const updatedService = req.body;
+            console.log(id,updatedService)
+            const options = { upsert: true }
+            const filter = { _id: new ObjectId(id) }
+            const updatedDoc = {
+                $set: updatedService
+            }
+            const result = await serviceCollection.updateOne(filter, updatedDoc,options)
+            console.log(result);
+            res.send(result)
+        })
+
+        //update service status in paymentcollectiion
+        app.put('/payments/:id', verifyJWT,verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const { status } = req.body;
             console.log(id, status)
@@ -154,7 +169,7 @@ async function run() {
         })
 
         //post reviews
-        app.post('/review', verifyJWT, async (req, res) => {
+        app.post('/reviews', verifyJWT, async (req, res) => {
             const review = req.body;
             const result = await reviewCollection.insertOne(review)
             res.send(result)
@@ -167,7 +182,7 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/user/payments', verifyJWT, async (req, res) => {
+        app.get('/payments/user', verifyJWT, async (req, res) => {
             const email = req.query.email;
             const query = { email: email }
             const result = await paymentCollection.find(query).toArray()
@@ -175,12 +190,13 @@ async function run() {
         })
 
         //make admin
-        app.patch('/users/make-admin', async (req, res) => {
+        app.patch('/users/make-admin',verifyJWT, async (req, res) => {
             const email = req.query.email
+            console.log(email)
             const filter = { email: email }
 
 
-            // const result1 = await userCollection.findOne(filter)
+            const result1 = await userCollection.findOne(filter)
 
             const updateDoc = {
                 $set: {
@@ -190,12 +206,12 @@ async function run() {
             const result2 = await userCollection.updateOne(filter, updateDoc)
             // console.log(result2)
             // // const result = await userCollection.updateOne(body)
-            res.send(result2)
+            res.send({ result1, result2 })
         })
 
         //get user role
 
-        app.get('/isAdmin', async (req, res) => {
+        app.get('/users/isAdmin', async (req, res) => {
             const email = req.query.email
             const query = { email: email }
             const result = await userCollection.findOne(query)
